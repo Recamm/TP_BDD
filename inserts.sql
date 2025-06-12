@@ -1,2 +1,1 @@
-SELECT * from `Usuario`;
-
+SELECT * from `Usuario`; asd
