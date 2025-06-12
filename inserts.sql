@@ -1,1 +1,1 @@
-SELECT * from `Usuario`;
+DROP DATABASE TP_BDD;
