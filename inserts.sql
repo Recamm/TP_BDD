@@ -1,1 +1,1 @@
-SELECT * from `Usuario`; asd
+SELECT * from `Usuario`;
