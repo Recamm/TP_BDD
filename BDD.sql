@@ -13,7 +13,7 @@ create table Producto(
     idProducto int primary key not null auto_increment,
     nombre varchar(50),
     marca varchar(50),
-    descripccion text
+    descripcion text
 );
 
 create table Categoria(
@@ -26,7 +26,7 @@ create table Publicacion(
     precio float,
     nivelPublicacion varchar(50) check (nivelPublicacion in ('Bronce', 'Plata', 'Oro', 'Platino')),
     estado varchar(50) check (estado in ('En Progreso', 'Finalizada', 'Pausada', 'Observada')),
-    fecha datetime default now(),
+    fechaHora datetime default now(),
     idCategoria int not null,
     idProducto int not null,
     DNIUsuario int not null,
@@ -35,21 +35,6 @@ create table Publicacion(
     foreign key (DNIUsuario) references Usuario (DNI)
 );
 
-create table Venta(
-    idVenta int primary key not null auto_increment,
-    fecha date,
-    idPublicacion int not null,
-    DNIComprador int not null,
-    foreign key (idPublicacion) references Publicacion (idPublicacion),
-    foreign key (DNIComprador) references Usuario (DNI)
-);
-
-create table Calificacion(
-    idCalificacion int primary key not null auto_increment,
-    calificacion float check (calificacion >= 0 and calificacion <= 5 and (calificacion * 2) = floor(calificacion * 2)),
-    idVenta int not null,
-    foreign key (idVenta) references Venta (idVenta)
-);
 
 create table Pregunta(
     idPregunta int primary key not null auto_increment,
@@ -67,9 +52,7 @@ create table Subasta(
     fechaHoraInicio datetime,
     fechaHoraFin datetime,
     idPublicacion int not null,
-    DNIUsuario int not null,
-    foreign key (idPublicacion) references Publicacion (idPublicacion),
-    foreign key (DNIUsuario) references Usuario (DNI)
+    foreign key (idPublicacion) references Publicacion (idPublicacion)
 );
 
 create table Historial(
@@ -77,7 +60,9 @@ create table Historial(
     monto float,
     fechaHora datetime,
     idSubasta int not null,
-    foreign key (idSubasta) references Subasta (idSubasta)
+    DNIUsuario int not null,
+    foreign key (idSubasta) references Subasta (idSubasta),
+    foreign key (DNIUsuario) references Usuario (DNI)
 );
 
 
@@ -100,3 +85,48 @@ create table VentaDirecta(
     foreign key (idEnvio) references Envio (idEnvio),
     foreign key (idPublicacion) references Publicacion (idPublicacion)
 );
+
+create table Envio_VentaDirecta(
+    idVentaDirec int not null,
+    idEnv int not null,
+    primary key (idVentaDirec, idEnv),
+    foreign key (idVentaDirec) references VentaDirecta (idVentaDirecta),
+    foreign key (idEnv) references Envio (idEnvio)
+);
+
+create table Pago_VentaDirecta(
+    idVentaDirec int not null,
+    idPag int not null,
+    primary key (idVentaDirec, idPag),
+    foreign key (idVentaDirec) references VentaDirecta (idVentaDirecta),
+    foreign key (idPag) references Pago (idPago)
+);
+
+create table Venta(
+    idVenta int primary key not null auto_increment,
+    fechaHora datetime,
+    idPublicacion int not null,
+    DNIUsuario int not null,
+    idEnvio int not null,
+    idPago int not null,
+    foreign key (idPublicacion) references Publicacion (idPublicacion),
+    foreign key (DNIUsuario) references Usuario (DNI),
+    foreign key (idEnvio) references Envio (idEnvio),
+    foreign key (idPago) references Pago (idPago)
+);
+
+create table Calificacion(
+    idCalificacion int primary key not null auto_increment,
+    calificacion float check (calificacion >= 0 and calificacion <= 5 and (calificacion * 2) = floor(calificacion * 2)),
+    fechaHora datetime,
+    idVenta int unique not null,
+    foreign key (idVenta) references Venta (idVenta)
+);
+
+/* 
+
+Consideramos que se ofrecen todos los metodos de pago y todos los metodos de envio
+Los que estan en venta directa son los que ofrecemos ya que es un tipo de publicacion 
+Los que estan en venta son los ya seleccionados
+
+*/
