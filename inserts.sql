@@ -1,9 +1,9 @@
-INSERT INTO Usuario VALUES
-(1001, 'Ana', 'Gomez', 'Calle 123', 'Normal', 85),
-(1002, 'Luis', 'Martinez', 'Av. Roca 456', 'Platinium', 92),
-(1003, 'Sofia', 'Lopez', 'Mitre 789', 'Gold', 76),
-(1004, 'Carlos', 'Perez', 'Urquiza 321', 'Normal', 64),
-(1005, 'Lucia', 'Garcia', 'Belgrano 654', 'Gold', 80);
+INSERT INTO Usuario(DNI, nombre, apellido, email, direccion, categoria, reputacion) VALUES
+(1001, 'Ana', 'Gomez', 'anagomez@gmail.com', 'Calle 123', 'Normal', 85),
+(1002, 'Luis', 'Martinez', 'luismartinez@gmail.com', 'Av. Roca 456', 'Platinium', 92),
+(1003, 'Sofia', 'Lopez', 'sofialopez@gmail.com', 'Mitre 789', 'Gold', 76),
+(1004, 'Carlos', 'Perez', 'carlosperez@gmail.com', 'Urquiza 321', 'Normal', 64),
+(1005, 'Lucia', 'Garcia', 'luciagarcia@gmail.com', 'Belgrano 654', 'Gold', 80);
  
 INSERT INTO Producto(nombre, marca, descripcion) VALUES
 ('Celular', 'Samsung', 'Galaxy A52'),
