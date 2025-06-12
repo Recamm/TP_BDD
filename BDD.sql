@@ -5,10 +5,12 @@ create table Usuario(
     DNI int primary key not null,
     nombre varchar(50),
     apellido varchar(50),
+    email varchar(150),
     direccion varchar(50),
     categoria varchar(50) check (categoria in (null, 'Normal', 'Platinium', 'Gold')),
     reputacion int check (reputacion between 0 and 100)
 );
+
 create table Producto(
     idProducto int primary key not null auto_increment,
     nombre varchar(50),
