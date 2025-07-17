@@ -133,7 +133,7 @@ select comprarProducto(1001, 3, 1, 1);
 drop function comprarProducto;
  
  
-#------------2------------# REVER TEMA CALIFICACIONES
+#------------2------------#
 delimiter //
 create function cerrarPublicacion(dni_usuario int, id_publicacion int) returns text deterministic
 begin
