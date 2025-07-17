@@ -45,7 +45,7 @@ delimiter //
 create procedure actualizarReputacionUsuario ()
 begin
 	declare promedio float;
-    declare Idventass, suma, cantidad, iDNI int;
+    declare suma, cantidad, iDNI int;
     declare hayFilas int default 0;
     declare recorrer CURSOR FOR select DNI from Usuario;
     declare continue HANDLER FOR not found set hayFilas = 1;
@@ -55,19 +55,24 @@ begin
         if hayFilas = 1 then
 			leave bucle;
 		end if;
-	set Idventass = (select idVenta from Venta where DNIUsuario = iDNI);
-    set suma = (select sum(calificacion) from Calificacion where idVenta = Idventass);
-    set cantidad = (select count(idCalificacion) from Calificacion where idVenta = Idventass);
-    set promedio = suma / cantidad;
+		
+        set suma = (select sum(calificacion) from Calificacion 
+        where idVenta in (select idVenta from Venta where DNIUsuario = iDNI));
+        
+		set cantidad = (select count(idCalificacion) from Calificacion 
+        where idVenta in (select idVenta from Venta where DNIUsuario = iDNI));
+        
+		set promedio = suma / cantidad;
+		update Usuario set reputacion = promedio where DNI = iDNI;
 
-    start transaction;
-    update Usuario set reputacion = promedio where DNI = iDNI;
-    if cantidad > 0 then
-        commit;
-    else 
-        rollback;
-        signal sqlstate '45000' set MESSAGE_TEXT = "Error al actualizar reputacion"
-
-end loop bucle;
+        start transaction;
+        update Usuario set reputacion = promedio where DNI = iDNI;
+        if cantidad > 0 then
+            commit;
+        else 
+            rollback;
+            signal sqlstate '45000' set MESSAGE_TEXT = "Error al actualizar reputacion"
+	end loop bucle;
+    close recorrer;
 end //
 delimiter ;

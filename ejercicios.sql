@@ -4,6 +4,7 @@
 /*STORED PROCEDURE*/
 /*STORED PROCEDURE*/
 
+/*STORED PROCEDURE*/
 -- 1
 delimiter //
 create procedure BuscarPublicacion(IN nombreProducto text)
@@ -17,7 +18,14 @@ drop procedure BuscarPublicacion;
  
 -- 2
 delimiter //
-create procedure crearPublicacion(IN precio FLOAT, IN nivelPublicacion text, IN estado text, IN idCategoria INT, IN idProducto INT, IN DNIVendedor INT, IN tipoPublicacion text, -- 'Subasta' o 'VentaDirecta'
+create procedure crearPublicacion(
+	IN precio FLOAT, 
+	IN nivelPublicacion text, 
+	IN estado text, 
+	IN idCategoria INT, 
+	IN idProducto INT, 
+	IN DNIVendedor INT, 
+	IN tipoPublicacion text, -- 'Subasta' o 'VentaDirecta'
     IN fechaHoraInicio DATETIME, -- subasta
     IN fechaHoraFin DATETIME,    -- subasta
     IN idPago INT,               -- venta directa
@@ -25,7 +33,7 @@ create procedure crearPublicacion(IN precio FLOAT, IN nivelPublicacion text, IN 
 )
 begin
     declare idPub INT;
-    INSERT INTO Publicacion(precio, nivelPublicacion, estado, idCategoria, idProducto, DNIusuario)
+    INSERT INTO Publicacion(precio, nivelPublicacion, estado, idCategoria, idProducto, DNIUsuario)
     VALUES (precio, nivelPublicacion, estado, idCategoria, idProducto, DNIVendedor);
 	-- idPublicacion de insert recien ingresado 
     set idPub = (SELECT idPublicacion
@@ -39,28 +47,16 @@ begin
     ORDER BY idPublicacion DESC
     LIMIT 1);
     IF tipoPublicacion = 'Subasta' THEN
-        INSERT INTO Subasta(fechaHoraInicio, fechaHoraFin, idPublicacion, DNIUsuario)
-        VALUES (fechaHoraInicio, fechaHoraFin, idPub, DNIVendedor);
+        INSERT INTO Subasta(fechaHoraInicio, fechaHoraFin, idPublicacion)
+        VALUES (fechaHoraInicio, fechaHoraFin, idPub);
     ELSEIF tipoPublicacion = 'VentaDirecta' THEN
         INSERT INTO VentaDirecta(idPago, idEnvio, idPublicacion)
         VALUES (idPago, idEnvio, idPub);
     END IF;
 end //
 delimiter ;
-CALL crearPublicacion(
-  1500,               -- precio
-  'Oro',              -- nivelPublicacion
-  'En Progreso',      -- estado
-  1,                  -- idCategoria
-  1,                  -- idProducto
-  1001,               -- DNIVendedor
-  'VentaDirecta',     -- tipoPublicacion
-  NULL, NULL,         -- fechas (no se usan para VentaDirecta)
-  1,                  -- idPago
-  1                   -- idEnvio
-);
+CALL crearPublicacion(16400,'Platino', 'Finalizada', 2, 5, 30000001, 'VentaDirecta', '2010-5-5 03:0:0', '2010-6-5 03:00:00', 10, 10);
 DROP PROCEDURE crearPublicacion;
- 
  
 -- 3
 delimiter //
@@ -78,7 +74,7 @@ delimiter //
 create procedure actualizarReputacionUsuario ()
 begin
 	declare promedio float;
-    declare Idventass, suma, cantidad, iDNI int;
+    declare suma, cantidad, iDNI int;
     declare hayFilas int default 0;
     declare recorrer CURSOR FOR select DNI from Usuario;
     declare continue HANDLER FOR not found set hayFilas = 1;
@@ -88,14 +84,21 @@ begin
         if hayFilas = 1 then
 			leave bucle;
 		end if;
-	set Idventass = (select idVenta from Venta where DNIUsuario = iDNI);
-    set suma = (select sum(calificacion) from Calificacion where idVenta = Idventass);
-    set cantidad = (select count(idCalificacion) from Calificacion where idVenta = Idventass);
-    set promedio = suma / cantidad;
-    update Usuario set reputacion = promedio where DNI = iDNI;
-end loop bucle;
+		
+        set suma = (select sum(calificacion) from Calificacion 
+        where idVenta in (select idVenta from Venta where DNIUsuario = iDNI));
+        
+		set cantidad = (select count(idCalificacion) from Calificacion 
+        where idVenta in (select idVenta from Venta where DNIUsuario = iDNI));
+        
+		set promedio = suma / cantidad;
+		update Usuario set reputacion = promedio where DNI = iDNI;
+	end loop bucle;
+    close recorrer;
 end //
 delimiter ;
+
+
 CALL actualizarReputacionUsuario();
 DROP PROCEDURE actualizarReputacionUsuario;
 
@@ -105,6 +108,7 @@ DROP PROCEDURE actualizarReputacionUsuario;
 /*STORED FUNCTIONS*/
 /*STORED FUNCTIONS*/
 
+############STORED_FUNCTIONS############
 #------------1------------#
 delimiter //
 create function comprarProducto(idUsuario int, idP int, idPago int, idEnvio int) returns text deterministic
@@ -279,14 +283,13 @@ drop function responderPregunta;
  
 select respuesta from Pregunta where 3 = idPregunta;
 
-
 /*VISTAS*/
 /*VISTAS*/
 /*VISTAS*/
 /*VISTAS*/
 /*VISTAS*/
 
--- 1 
+/* 1 */
 
 create view preguntasActivas as
     select 
@@ -308,7 +311,7 @@ create view preguntasActivas as
         and (Publicacion.estado = 'En Progreso' or Publicacion.estado = 'Observada');
 
 
--- 2
+/* 2 */
 
 create view top10CategoriasSemana as
     select 
@@ -318,12 +321,11 @@ create view top10CategoriasSemana as
     join Categoria on Publicacion.idCategoria = Categoria.idCategoria
     where yearweek (Publicacion.fechaHora, 1) = yearweek (curdate(), 1)
     group by Categoria.nombre
-    order by cantidad_Publicaciones desc
+    order by CantPublicaciones desc
     limit 10;
 
 
-
--- 3
+/* 3 */
 
 create view publicacionesTendenciasHoy as
     select
@@ -339,24 +341,21 @@ create view publicacionesTendenciasHoy as
     order by CantidadPreguntas desc;
 
 
--- 4
+/* 4 */
 
 create view mejoresUsuariosPorCategoria as
-    select 
+select 
     Usuario.DNI as DNI,
     Usuario.nombre as Nombre,
-    Usuario.apellido as Apellido,
-    Usuario.categoria as Categoria,
-    Usuario.reputacion as Reputacion
+    Usuario.categoria as Categoria
     from Usuario
     where Usuario.reputacion = (
-        select max(Usuario.reputacion)
-        from Usuario
-        where Usuario.categoria = Categoria
-    )
+        select max(Usuario2.reputacion)
+        from Usuario as Usuario2
+        where Usuario2.categoria = Usuario.categoria
+        )
+    and Usuario.categoria is not null
     order by Usuario.categoria;
-
-
 
 /*TRIGGERS*/
 /*TRIGGERS*/
@@ -373,17 +372,48 @@ begin
 end//
 delimiter ;
 
-
 -- 2
 delimiter //
-create trigger calificar after update on Venta
+create trigger calificar
+after update on Venta
 for each row
 begin
-    if 
-end//
+    declare calif float;
+    declare vendedorDNI int;
+    declare cantCalificaciones int;
+
+    select calificacion into calif
+    from Calificacion
+    where idVenta = new.idVenta;
+
+    if calif is not null then
+
+        select DNIUsuario into vendedorDNI
+        from Publicacion
+        where idPublicacion = new.idPublicacion;
+
+        select count(*) into cantCalificaciones
+        from Calificacion
+        join Venta on Venta.idVenta = Calificacion.idVenta
+        join Publicacion on Publicacion.idPublicacion = Venta.idPublicacion
+        where Publicacion.DNIUsuario = vendedorDNI;
+
+        update Usuario
+        set reputacion = (
+            select floor(avg(calificacion) * 2) / 2 -- promedio de calificaciones y lo redondeamos a múltiplos de 0.5
+            from Calificacion
+            join Venta on Venta.idVenta = Calificacion.idVenta
+            join Publicacion on Publicacion.idPublicacion = Venta.idPublicacion
+            where Publicacion.DNIUsuario = vendedorDNI
+        )
+        where DNI = vendedorDNI;
+
+    end if;
+end //
 delimiter ;
 
 -- 3
+use TP_BDD;
 delimiter //
 create trigger cambiarCategoria after insert on Venta
 for each row
@@ -392,21 +422,22 @@ begin
     declare facturacion int default 0;
     declare nivelUsuario varchar(50);
     select count(*) into cantVentas from ventas where DNIUsuario = new.DNIUsuario;
-    select sum(precio) from `Publicacion` 
+    select sum(precio) into facturacion from `Publicacion` 
     join Venta on `Publicacion`.`idPublicacion` = `Venta`.`idPublicacion`
     where `Publicacion`.`DNIUsuario` = new.DNIUsuario;
 
     if cantVentas <= 5 then 
         set nivelUsuario = "Normal";
-    else if cantVentas <= 10 or (facturacion > 100000 and facturacion < 1000000) then 
+    elseif cantVentas <= 10 or (facturacion > 100000 and facturacion < 1000000) then 
         set nivelUsuario = "Platinum";
-    else if cantVentas > 10 or facturacion > 1000000 then 
+    elseif cantVentas > 10 or facturacion > 1000000 then 
         set nivelUsuario = "Gold";
     end if;
-
+    
     update `Usuario` set categoria = nivelUsuario where `DNIUsuario` = new.`DNIUsuario`;
-end//
+end //
 delimiter ;
+
 
 /*EVENTOS*/
 /*EVENTOS*/
@@ -425,6 +456,7 @@ begin
     and fechaHora < now() - interval 90 day;
 end //
 delimiter ;
+
 
 -- 2
 
@@ -453,12 +485,14 @@ delimiter ;
 /*INDICES*/
 /*INDICES*/
 
+use TP_BDD;
+
 -- 1
 create index idProducto_Publicacion on Publicacion(idProducto);
 create index nombreProducto on Producto(nombre);
 
 -- 2
-create index correoElectronico on Usuario(email);
+create unique index correoElectronico on Usuario(email);
 
 -- 3
 create index estados on Publicacion(estado);
@@ -516,7 +550,7 @@ delimiter //
 create procedure actualizarReputacionUsuario ()
 begin
 	declare promedio float;
-    declare Idventass, suma, cantidad, iDNI int;
+    declare suma, cantidad, iDNI int;
     declare hayFilas int default 0;
     declare recorrer CURSOR FOR select DNI from Usuario;
     declare continue HANDLER FOR not found set hayFilas = 1;
@@ -526,19 +560,24 @@ begin
         if hayFilas = 1 then
 			leave bucle;
 		end if;
-	set Idventass = (select idVenta from Venta where DNIUsuario = iDNI);
-    set suma = (select sum(calificacion) from Calificacion where idVenta = Idventass);
-    set cantidad = (select count(idCalificacion) from Calificacion where idVenta = Idventass);
-    set promedio = suma / cantidad;
+		
+        set suma = (select sum(calificacion) from Calificacion 
+        where idVenta in (select idVenta from Venta where DNIUsuario = iDNI));
+        
+		set cantidad = (select count(idCalificacion) from Calificacion 
+        where idVenta in (select idVenta from Venta where DNIUsuario = iDNI));
+        
+		set promedio = suma / cantidad;
+		update Usuario set reputacion = promedio where DNI = iDNI;
 
-    start transaction;
-    update Usuario set reputacion = promedio where DNI = iDNI;
-    if cantidad > 0 then
-        commit;
-    else 
-        rollback;
-        signal sqlstate '45000' set MESSAGE_TEXT = "Error al actualizar reputacion"
-
-end loop bucle;
+        start transaction;
+        update Usuario set reputacion = promedio where DNI = iDNI;
+        if cantidad > 0 then
+            commit;
+        else 
+            rollback;
+            signal sqlstate '45000' set MESSAGE_TEXT = "Error al actualizar reputacion"
+	end loop bucle;
+    close recorrer;
 end //
 delimiter ;

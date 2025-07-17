@@ -30,9 +30,8 @@ create view top10CategoriasSemana as
     join Categoria on Publicacion.idCategoria = Categoria.idCategoria
     where yearweek (Publicacion.fechaHora, 1) = yearweek (curdate(), 1)
     group by Categoria.nombre
-    order by cantidad_Publicaciones desc
+    order by CantPublicaciones desc
     limit 10;
-
 
 
 /* 3 */
@@ -54,16 +53,15 @@ create view publicacionesTendenciasHoy as
 /* 4 */
 
 create view mejoresUsuariosPorCategoria as
-    select 
+select 
     Usuario.DNI as DNI,
     Usuario.nombre as Nombre,
-    Usuario.apellido as Apellido,
-    Usuario.categoria as Categoria,
-    Usuario.reputacion as Reputacion
+    Usuario.categoria as Categoria
     from Usuario
     where Usuario.reputacion = (
-        select max(Usuario.reputacion)
-        from Usuario
-        where Usuario.categoria = Categoria
-    )
+        select max(Usuario2.reputacion)
+        from Usuario as Usuario2
+        where Usuario2.categoria = Usuario.categoria
+        )
+    and Usuario.categoria is not null
     order by Usuario.categoria;

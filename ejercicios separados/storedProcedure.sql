@@ -12,7 +12,14 @@ drop procedure BuscarPublicacion;
  
 -- 2
 delimiter //
-create procedure crearPublicacion(IN precio FLOAT, IN nivelPublicacion text, IN estado text, IN idCategoria INT, IN idProducto INT, IN DNIVendedor INT, IN tipoPublicacion text, -- 'Subasta' o 'VentaDirecta'
+create procedure crearPublicacion(
+	IN precio FLOAT, 
+	IN nivelPublicacion text, 
+	IN estado text, 
+	IN idCategoria INT, 
+	IN idProducto INT, 
+	IN DNIVendedor INT, 
+	IN tipoPublicacion text, -- 'Subasta' o 'VentaDirecta'
     IN fechaHoraInicio DATETIME, -- subasta
     IN fechaHoraFin DATETIME,    -- subasta
     IN idPago INT,               -- venta directa
@@ -20,7 +27,7 @@ create procedure crearPublicacion(IN precio FLOAT, IN nivelPublicacion text, IN 
 )
 begin
     declare idPub INT;
-    INSERT INTO Publicacion(precio, nivelPublicacion, estado, idCategoria, idProducto, DNIusuario)
+    INSERT INTO Publicacion(precio, nivelPublicacion, estado, idCategoria, idProducto, DNIUsuario)
     VALUES (precio, nivelPublicacion, estado, idCategoria, idProducto, DNIVendedor);
 	-- idPublicacion de insert recien ingresado 
     set idPub = (SELECT idPublicacion
@@ -34,28 +41,16 @@ begin
     ORDER BY idPublicacion DESC
     LIMIT 1);
     IF tipoPublicacion = 'Subasta' THEN
-        INSERT INTO Subasta(fechaHoraInicio, fechaHoraFin, idPublicacion, DNIUsuario)
-        VALUES (fechaHoraInicio, fechaHoraFin, idPub, DNIVendedor);
+        INSERT INTO Subasta(fechaHoraInicio, fechaHoraFin, idPublicacion)
+        VALUES (fechaHoraInicio, fechaHoraFin, idPub);
     ELSEIF tipoPublicacion = 'VentaDirecta' THEN
         INSERT INTO VentaDirecta(idPago, idEnvio, idPublicacion)
         VALUES (idPago, idEnvio, idPub);
     END IF;
 end //
 delimiter ;
-CALL crearPublicacion(
-  1500,               -- precio
-  'Oro',              -- nivelPublicacion
-  'En Progreso',      -- estado
-  1,                  -- idCategoria
-  1,                  -- idProducto
-  1001,               -- DNIVendedor
-  'VentaDirecta',     -- tipoPublicacion
-  NULL, NULL,         -- fechas (no se usan para VentaDirecta)
-  1,                  -- idPago
-  1                   -- idEnvio
-);
+CALL crearPublicacion(16400,'Platino', 'Finalizada', 2, 5, 30000001, 'VentaDirecta', '2010-5-5 03:0:0', '2010-6-5 03:00:00', 10, 10);
 DROP PROCEDURE crearPublicacion;
- 
  
 -- 3
 delimiter //
@@ -73,7 +68,7 @@ delimiter //
 create procedure actualizarReputacionUsuario ()
 begin
 	declare promedio float;
-    declare Idventass, suma, cantidad, iDNI int;
+    declare suma, cantidad, iDNI int;
     declare hayFilas int default 0;
     declare recorrer CURSOR FOR select DNI from Usuario;
     declare continue HANDLER FOR not found set hayFilas = 1;
@@ -83,13 +78,20 @@ begin
         if hayFilas = 1 then
 			leave bucle;
 		end if;
-	set Idventass = (select idVenta from Venta where DNIUsuario = iDNI);
-    set suma = (select sum(calificacion) from Calificacion where idVenta = Idventass);
-    set cantidad = (select count(idCalificacion) from Calificacion where idVenta = Idventass);
-    set promedio = suma / cantidad;
-    update Usuario set reputacion = promedio where DNI = iDNI;
-end loop bucle;
+		
+        set suma = (select sum(calificacion) from Calificacion 
+        where idVenta in (select idVenta from Venta where DNIUsuario = iDNI));
+        
+		set cantidad = (select count(idCalificacion) from Calificacion 
+        where idVenta in (select idVenta from Venta where DNIUsuario = iDNI));
+        
+		set promedio = suma / cantidad;
+		update Usuario set reputacion = promedio where DNI = iDNI;
+	end loop bucle;
+    close recorrer;
 end //
 delimiter ;
+
+
 CALL actualizarReputacionUsuario();
 DROP PROCEDURE actualizarReputacionUsuario;
